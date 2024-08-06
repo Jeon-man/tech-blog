@@ -6,10 +6,10 @@ const siteMetadata = {
   description: '백엔드 공부 및 사용한 기술들을 정리하기 위한 블로그입니다',
   language: 'ko',
   theme: 'system', // system, dark or light
-  siteUrl: 'https://tailwind-nextjs-starter-blog.vercel.app',
-  siteRepo: 'https://github.com/timlrx/tailwind-nextjs-starter-blog',
+  siteUrl: 'https://jeonman-tech-blog.vercel.app',
+  siteRepo: 'https://github.com/Jeon-man/tech-blog',
   siteLogo: `${process.env.BASE_PATH || ''}/static/images/logo.png`,
-  socialBanner: `${process.env.BASE_PATH || ''}/static/images/twitter-card.png`,
+  socialBanner: `${process.env.BASE_PATH || ''}/static/images/logo.png`,
   email: 'jhmjhm0106@naver.com',
   github: 'https://github.com/Jeon-man',
   locale: 'ko-KR',
