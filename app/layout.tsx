@@ -72,6 +72,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           name="google-site-verification"
           content="LORJ7R00PvXiOxtKyDDQKZ_jsoXFqTsQYux5Q_mHHI0"
         />
+        <meta name="naver-site-verification" content="92d5786b265f1c713e8da35c9ebfdb67cde7e7fb" />
       </head>
       <link
         rel="apple-touch-icon"
