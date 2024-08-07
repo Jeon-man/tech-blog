@@ -66,9 +66,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang={siteMetadata.language}
       className={`${space_grotesk.variable} scroll-smooth`}
       suppressHydrationWarning
-    ><head>
-      <meta name="google-site-verification" content="LORJ7R00PvXiOxtKyDDQKZ_jsoXFqTsQYux5Q_mHHI0" />
-    </head>
+    >
+      <head>
+        <meta
+          name="google-site-verification"
+          content="LORJ7R00PvXiOxtKyDDQKZ_jsoXFqTsQYux5Q_mHHI0"
+        />
+      </head>
       <link
         rel="apple-touch-icon"
         sizes="76x76"
