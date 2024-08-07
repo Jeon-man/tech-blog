@@ -51,6 +51,9 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
+  verification: {
+    google: 'LORJ7R00PvXiOxtKyDDQKZ_jsoXFqTsQYux5Q_mHHI0',
+  },
   twitter: {
     title: siteMetadata.title,
     card: 'summary_large_image',
@@ -67,13 +70,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${space_grotesk.variable} scroll-smooth`}
       suppressHydrationWarning
     >
-      <head>
-        <meta
-          name="google-site-verification"
-          content="LORJ7R00PvXiOxtKyDDQKZ_jsoXFqTsQYux5Q_mHHI0"
-        />
-        <meta name="naver-site-verification" content="92d5786b265f1c713e8da35c9ebfdb67cde7e7fb" />
-      </head>
       <link
         rel="apple-touch-icon"
         sizes="76x76"
