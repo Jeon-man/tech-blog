@@ -11,30 +11,30 @@ summary: 'Nestjs에서 jest로 테스트 코드 작성하기 (3)'
 [Nestjs test 공식 문서](https://docs.nestjs.com/fundamentals/testing)를 확인해보니 실제 module의 dependency를 가져와서 사용할 수 있는 것을 봤다.
 그래서 적용해보려고 한다.
 
-```tyepscript
+```typescript
 // langchain.service.spec.ts
 // 현재 상태
 
 describe('LangChainService', () => {
-  let service: LangChainService;
-  let fileVectorStore: FileVectorStoreStrategy;
-  let chatVectorStore: ChatVectorStoreStrategy;
+  let service: LangChainService
+  let fileVectorStore: FileVectorStoreStrategy
+  let chatVectorStore: ChatVectorStoreStrategy
 
   beforeEach(() => {
     fileVectorStore = {
       addDocument: jest.fn(),
       search: jest.fn(),
       getChain: jest.fn(),
-    } as unknown as FileVectorStoreStrategy;
+    } as unknown as FileVectorStoreStrategy
 
     chatVectorStore = {
       addDocument: jest.fn(),
       getChain: jest.fn(),
-    } as unknown as ChatVectorStoreStrategy;
+    } as unknown as ChatVectorStoreStrategy
 
-    service = new LangChainService(fileVectorStore, chatVectorStore);
+    service = new LangChainService(fileVectorStore, chatVectorStore)
   })
-});
+})
 
 // ...
 ```
