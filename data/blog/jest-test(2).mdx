@@ -1,0 +1,238 @@
+---
+title: Jest-test(1)
+date: '2024-08-07'
+tags: ['Test', 'Nestjs', 'Jest']
+draft: false
+summary: 'Nestjs에서 jest로 테스트 코드 작성하기 (2)'
+---
+
+### Jest로 service 함수 테스트 하기
+
+서비스 함수들의 단위테스트를 진행하고자 한다.
+
+테스트 파일의 위치는 서비스 파일과 같은 디렉토리에 추가한다.
+```
+root/
+├── src/
+│   ├── @types
+│   ├── utils/
+│   └── modules/
+│       ├── app/
+│       ├── config/
+│       ├── langchain/
+│           └── langchain.service.ts
+│           └── langchain.controller.ts
+│           └── langchain.types.ts
+│           └── langchain.service.spec.ts // 같은 위치에 추가
+├── test/
+│   ├── test files
+├── package.json
+└── tsconfig.json
+```
+파일 이름을 service.spec.ts로 짓는 이유는 test 파일인 것을 구분하기 위해 spec을 붙인 후 
+jest config에서 정규식을 통해 spec.ts로 끝나는 파일을 테스트 파일로 인식한다.
+여기서 spec의 의미는 `Specification`로 사양을 의미한다고 한다.
+
+테스트를 할 서비스 함수이다.
+```typescript
+// langchain.service.ts
+import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf';
+import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
+
+ async embeddingPdf(filepath: string, withChat: boolean, messageGroupId?: number) {
+    const pdfLoader = new PDFLoader(filepath);
+    const pdf = await pdfLoader.load();
+
+    const textSplitter = new RecursiveCharacterTextSplitter({
+      chunkSize: 1000,
+      chunkOverlap: 50,
+    });
+
+    const texts = await textSplitter.splitDocuments(pdf);
+    let embeddings: Document[] = [];
+
+    for (let i = 0; i < texts.length; i++) {
+      const page = texts[i];
+      const splitTexts = await textSplitter.splitText(page.pageContent);
+
+      const pageEmbeddings = splitTexts.map(text => ({
+        pageContent: text,
+        metadata: {
+          pageNumber: i,
+          ...(messageGroupId ? { messageGroupId } : undefined),
+        },
+      }));
+      embeddings = embeddings.concat(pageEmbeddings);
+    }
+
+    if (withChat && messageGroupId) await this.chatVectorStore.addDocument(embeddings);
+
+    await this.fileVectorStore.addDocument(embeddings);
+  }
+```
+pdf 파일을 업로드 후 파일의 경로를 받아 vector database에 임베딩 하는 함수이다.
+위 함수에서는 langchain 모듈에서 제공하는 함수인 `PDFLoader`, `RecursiveCharacterTextSplitter`를 사용한다.
+
+하지만 이 함수들까지 테스트를 한다면 외부 모듈의 의존성이 높아지며, 환경의 복잡성이 올라가기에
+`mocking`을 통해 외부 모듈의 의존성을 줄여 테스트의 신뢰성을 높여야한다.
+
+---
+
+### Mock이란
+`mock`은 사전적인 의미로는 `모조품`이란 뜻을 가지고 있다.
+jest에서는 mock이란 실제 함수가 아닌 가짜로 구현한 함수이며 가짜로 변환하는 과정을 `mocking`이라고 한다.
+mock 함수는 고정된 값을 리턴하여 일관성을 보장한다.
+
+그래서 먼저 외부 모듈인 `PDFLoader`, `RecursiveCharacterTextSplitter`를 mocking 해준다.
+```typescript
+// langchain.service.spec.ts
+jest.mock('@langchain/community/document_loaders/fs/pdf'); // PDFLoader 모듈을 mock
+jest.mock('langchain/text_splitter'); // RecursiveCharacterTextSplitter 모듈을 mock
+
+describe('LangChainService', () => {
+  let service: LangChainService;
+  let fileVectorStore: FileVectorStoreStrategy;
+  let chatVectorStore: ChatVectorStoreStrategy;
+
+   //dependencies 값 초기화
+   beforeEach(() => {
+    fileVectorStore = {
+      addDocument: jest.fn(),
+      search: jest.fn(),
+      getChain: jest.fn(),
+    } as unknown as FileVectorStoreStrategy;
+
+    chatVectorStore = {
+      addDocument: jest.fn(),
+      getChain: jest.fn(),
+    } as unknown as ChatVectorStoreStrategy;
+
+    service = new LangChainService(fileVectorStore, chatVectorStore);
+  });
+});
+```
+
+테스트를 그룹화 하고 dependency를 내부 함수들에서 사용하기 때문에
+mock 선언 후에 테스트 할 service로 감싸준다. dependency의 값들을 초기화 해준다.
+VectorStoreStrategy 함수들은 외부 모듈을 쓰고 있기에 jest.fn()으로 mocking 한다.
+
+```typescript
+// langchain.service.spec.ts
+// ...
+describe('embeddingPdf', () => {
+    it('should embed PDF and store documents', async () => {
+      const mockPdf = [{ pageContent: 'Page 1 content' }, { pageContent: 'Page 2 content' }]; 
+      const mockSplitTexts = ['Split text 1', 'Split text 2'];
+      // 실제 함수들의 리턴타입과 같다.
+
+      (PDFLoader as unknown as jest.Mock).mockImplementation(() => ({
+        load: jest.fn().mockResolvedValue(mockPdf),
+      }));
+
+      (RecursiveCharacterTextSplitter as unknown as jest.Mock).mockImplementation(() => ({
+        splitDocuments: jest.fn().mockResolvedValue(mockPdf),
+        splitText: jest.fn().mockResolvedValue(mockSplitTexts),
+      }));
+
+      await service.embeddingPdf('test.pdf', true, 1);
+
+      expect(fileVectorStore.addDocument).toHaveBeenCalled();
+      expect(chatVectorStore.addDocument).toHaveBeenCalled();
+    });
+  });
+```
+
+실제 함수들의 리턴타입과 똑같이 정의 후 `mockImplementation` 함수를 통해 사용하는 외부 함수들을 mocking 한다.
+예를 들어 pdfLoader.load()를 호출한다면 실제 pdfLoader 경로에 가서 함수를 실행하는 것이 아닌
+`[{ pageContent: 'Page 1 content' }, { pageContent: 'Page 2 content' }]`이 리턴 된다.
+
+함수들을 mocking 후 테스트 하려했던 embeddingPdf를 실행한다.
+
+`expect(함수).toHaveBeenCalled()`를 통해 `embeedingPdf`에서 마지막에 호출하는 함수들이
+정상적으로 한 번이라도 호출 됐는지 검사를 한다.
+
+
+```sh
+yarn test
+# 결과
+ PASS  src/modules/app/app.controller.spec.ts (7.41 s)
+ PASS  src/modules/langchain/langchain.service.spec.ts (8.241 s)
+
+Test Suites: 2 passed, 2 total
+Tests:       2 passed, 2 total
+Snapshots:   0 total
+Time:        8.807 s
+Ran all test suites.
+✨  Done in 9.95s.
+```
+
+위와 같이 정상적으로 테스트에 성공했다.
+
+---
+
+### 테스트케이스 추가
+embedding 함수는 매개변수에 따라 다른 동작을 하기도 한다. 그래서 매개변수를 다르게 하여 새로운 케이스도 테스트 해야한다.
+
+```typescript
+// langchain.service.spec.ts
+// ...
+describe('embeddingPdf', () => {
+    it('should embed PDF and store documents', async () => {
+      const mockPdf = [{ pageContent: 'Page 1 content' }, { pageContent: 'Page 2 content' }]; 
+      const mockSplitTexts = ['Split text 1', 'Split text 2'];
+      // 실제 함수들의 리턴타입과 같다.
+
+      (PDFLoader as unknown as jest.Mock).mockImplementation(() => ({
+        load: jest.fn().mockResolvedValue(mockPdf),
+      }));
+
+      (RecursiveCharacterTextSplitter as unknown as jest.Mock).mockImplementation(() => ({
+        splitDocuments: jest.fn().mockResolvedValue(mockPdf),
+        splitText: jest.fn().mockResolvedValue(mockSplitTexts),
+      }));
+
+      await service.embeddingPdf('test.pdf', true, 1);
+
+      expect(fileVectorStore.addDocument).toHaveBeenCalled();
+      expect(chatVectorStore.addDocument).toHaveBeenCalled();
+    });
+
+    // 아래에 새로운 테스트 케이스를 추가함.
+    const mockPdf = [{ pageContent: 'Page 1 content' }];
+      const mockSplitTexts = ['Split text 1'];
+
+      (PDFLoader as unknown as jest.Mock).mockImplementation(() => ({
+        load: jest.fn().mockResolvedValue(mockPdf),
+      }));
+
+      (RecursiveCharacterTextSplitter as unknown as jest.Mock).mockImplementation(() => ({
+        splitDocuments: jest.fn().mockResolvedValue(mockPdf),
+        splitText: jest.fn().mockResolvedValue(mockSplitTexts),
+      }));
+
+      // withChat이 false이며 messageGroupId가 존재하지 않음
+      await service.embeddingPdf('test.pdf', false);
+
+      expect(fileVectorStore.addDocument).toHaveBeenCalled();
+      // withChat: false, messageGroupId: undefined 이므로 chatVectorStore.addDocument이 호출되지 않음
+      expect(chatVectorStore.addDocument).not.toHaveBeenCalled();
+  });
+```
+매개변수 값을 달리하여 존재할 수 있는 또 하나의 케이스를 추가했다. 실제 함수의 동작을 정확히 파악하는 것이 중요하다.
+
+
+```sh
+yarn test
+# 결과
+ PASS  src/modules/app/app.controller.spec.ts (7.106 s)
+ PASS  src/modules/langchain/langchain.service.spec.ts (7.594 s)
+
+Test Suites: 2 passed, 2 total
+Tests:       3 passed, 3 total
+Snapshots:   0 total
+Time:        8.228 s, estimated 9 s
+Ran all test suites.
+✨  Done in 9.33s.
+```
+
+위와 같이 Tests에 total이 1 늘어나며 테스트에 성공했다.
