@@ -77,6 +77,13 @@ describe('LangChainService', () => {
     fileVectorStore = module.get<FileVectorStoreStrategy>(FileVectorStoreStrategy)
     chatVectorStore = module.get<ChatVectorStoreStrategy>(ChatVectorStoreStrategy)
   })
+
+  // 서비스 객체 및 의존성 객체들을 test 한다.
+  it('should be defined', () => {
+    expect(service).toBeDefined()
+    expect(fileVectorStore).toBeDefined()
+    expect(fileVectorStore).toBeDefined()
+  })
 })
 
 // ...
