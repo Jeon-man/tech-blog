@@ -113,7 +113,8 @@ describe('LangChainService', () => {
 ```
 
 테스트를 그룹화 하고 dependency를 내부 함수들에서 사용하기 때문에
-mock 선언 후에 테스트 할 service로 감싸준다. dependency의 값들을 초기화 해준다.
+mock 선언 후에 테스트 할 service로 감싸준다. 
+service 테스트에서 beforeEach를 통해 dependency의 값들을 초기화 해준다.
 VectorStoreStrategy 함수들은 외부 모듈을 쓰고 있기에 jest.fn()으로 mocking 한다.
 
 ```typescript
