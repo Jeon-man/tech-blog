@@ -1,0 +1,102 @@
+---
+title: Jest-test(3)
+date: '2024-08-08'
+tags: ['Test', 'Nestjs', 'Jest']
+draft: false
+summary: 'Nestjs에서 jest로 테스트 코드 작성하기 (3)'
+---
+
+### Jest Test module 사용하기
+
+[Nestjs test 공식 문서](https://docs.nestjs.com/fundamentals/testing)를 확인해보니 실제 module의 dependency를 가져와서 사용할 수 있는 것을 봤다.
+그래서 적용해보려고 한다.
+
+```tyepscript
+// langchain.service.spec.ts
+// 현재 상태
+
+describe('LangChainService', () => {
+  let service: LangChainService;
+  let fileVectorStore: FileVectorStoreStrategy;
+  let chatVectorStore: ChatVectorStoreStrategy;
+
+  beforeEach(() => {
+    fileVectorStore = {
+      addDocument: jest.fn(),
+      search: jest.fn(),
+      getChain: jest.fn(),
+    } as unknown as FileVectorStoreStrategy;
+
+    chatVectorStore = {
+      addDocument: jest.fn(),
+      getChain: jest.fn(),
+    } as unknown as ChatVectorStoreStrategy;
+
+    service = new LangChainService(fileVectorStore, chatVectorStore);
+  })
+});
+
+// ...
+```
+
+현재는 변수로 만들어 dependency 값을 넣어주고 있다. 하지만 `Test.createTestingModule`를 nest에서 제공해서 실제 의존성을 주입할 수 있다.
+실제 의존성을 주입해 타입으로 변수를 선언해 값을 넣는 것보다 테스트의 정확성이 올라간다.
+
+```typescript
+// langchain.service.spec.ts
+// 변경 이후
+
+describe('LangChainService', () => {
+  let service: LangChainService
+  let fileVectorStore: FileVectorStoreStrategy
+  let chatVectorStore: ChatVectorStoreStrategy
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        LangChainService,
+        {
+          provide: FileVectorStoreStrategy,
+          useValue: {
+            addDocument: jest.fn(),
+            search: jest.fn(),
+            getChain: jest.fn(),
+          },
+        },
+        {
+          provide: ChatVectorStoreStrategy,
+          useValue: {
+            addDocument: jest.fn(),
+            getChain: jest.fn(),
+          },
+        },
+      ],
+    }).compile()
+
+    service = module.get<LangChainService>(LangChainService)
+    fileVectorStore = module.get<FileVectorStoreStrategy>(FileVectorStoreStrategy)
+    chatVectorStore = module.get<ChatVectorStoreStrategy>(ChatVectorStoreStrategy)
+  })
+})
+
+// ...
+```
+
+변경 후의 코드가 이전의 코드보다 더 가독성이 높아졌다.
+또한 `module.get()`으로 의존성을 가져오기에 정확성이 더 올라갔다.
+
+```sh
+yarn test
+# 결과
+ PASS  src/modules/app/app.controller.spec.ts (5.107 s)
+ PASS  src/modules/langchain/langchain.service.spec.ts (5.867 s)
+
+Test Suites: 2 passed, 2 total
+Tests:       3 passed, 3 total
+Snapshots:   0 total
+Time:        6.331 s, estimated 7 s
+Ran all test suites.
+✨  Done in 7.31s.
+```
+
+의존성 주입 변경 후에도 테스트 성공했다.
