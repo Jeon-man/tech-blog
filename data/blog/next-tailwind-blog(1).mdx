@@ -1,0 +1,121 @@
+---
+title: next-tailwind-blog(1)
+date: '2024-08-12'
+tags: ['Nextjs', 'React', 'Tailwind']
+draft: false
+summary: 'Nextjs 프로젝트 세팅'
+---
+
+현재 이 블로그는 [timlrx/tailwind-nextjs-starter-blog](https://github.com/timlrx/tailwind-nextjs-starter-blog) 를 통해 만들었다.
+
+템플릿을 통해 블로그를 만들며 디렉토리 구조를 확인하다보니 NextJs의 기능을 더 활용해 데이터베이스를 장착한 블로그를 만들어보려고 한다.
+
+### Nextjs 프로젝트 설정
+
+[공식 docs](https://nextjs.org/docs/getting-started/installation)를 기준으로 진행을 할 것이다.
+
+Nextjs는 이전 버전과 최신 버전의 차이가 크기에 가장 최신 버전인 14.\*를 사용할 것이다.
+
+```sh
+npx create-next-app@latest
+
+Ok to proceed? (y) y
+✔ What is your project named? … blog # 프로젝트 이름 설정
+✔ Would you like to use TypeScript? … No / (Yes) # typescript를 사용 할 것이다.
+✔ Would you like to use ESLint? … No / (Yes) # Typescript과 ESLint의 호환이 좋기 때문에 ESLinst도 사용한다.
+✔ Would you like to use Tailwind CSS? … No / (Yes) # TailWind CSS는 CSS 라이브러리로 사용한다.
+✔ Would you like to use `src/` directory? … No / (Yes) # src 디렉토리를 따로 분리해서 소스코드만을 관리한다.
+✔ Would you like to use App Router? (recommended) … No / (Yes) # next 13 이후 버전에서 나온 App Router 기능을 사용할 것이다.
+✔ Would you like to customize the default import alias (@/*)? … (No) / Yes # 기본 Alias를 사용하다 나중에 custom을 할 것이다.
+```
+
+생성된 프로젝트 파일을 연다.
+
+```
+blog/
+├── public/
+├── src/
+│   └── app/
+│       └── page.tsx
+│       └── favicon.ico
+│       └── globals.css
+│       └── layout.tsx
+├── package.json
+├── next.config.mjs
+├── next-env.d.ts
+├── postcss.config.mjs
+├── tailwind.config.ts
+└── tsconfig.json
+```
+
+기본적인 구조로 생성이 되었다.
+
+next는 3000번 포트가 기본 설정이므로 3001번으로 변경해준다
+
+```json
+// package.json
+{
+  ...
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  ...
+}
+```
+
+```sh
+yarn dev
+# 결과
+yarn run v1.22.19
+$ next dev -p 3001
+  ▲ Next.js 14.2.5
+  - Local:        http://localhost:3001
+
+ ✓ Starting...
+ ✓ Ready in 2.6s
+```
+
+localhost:3001으로 접근하면 next 기본 페이지가 나온다.
+
+<Image
+  src="/static/images/next-default-page.png"
+  alt="default page"
+  className="my-1 w-full overflow-hidden px-2 xl:my-1 xl:w-1/2 xl:px-2"
+  width="200"
+  height="50"
+/>
+
+---
+
+### Tailwind CSS란
+
+**Tailwind Css**는 html 태그 `className` 안에 css 코드를 작성할 수 있게 해주는 라이브러리다.
+
+원래 사내 프로젝트의 프론트에서는 `styled-component`를 사용하고 있었기에 **Tailwind CSS**는 처음 접했다.
+
+`styled-compnent`와 비교한다면 따로 \*.style.ts 파일을 작성하지 않고도 css를 파일 안에서 적용할 수 있다는 것이다.
+
+```html
+<!-- className으로 tailwind css를 지정해줌 -->
+<div className="my-1 w-full"></div>
+```
+
+**tailwind css 예시**
+
+```css
+/* 실제 tailwind를 통해 들어가는 css */
+.my-1 {
+  margin-top: 0.25rem /* 4px */;
+  margin-bottom: 0.25rem /* 4px */;
+}
+
+.w-full {
+  width: 100%;
+}
+`
+```
+
+실제로 쓰기엔 많은 연습이 필요할 것 같다. vscode의 extension `Tailwind CSS IntelliSense`의 도움을 받아 적용해보려고 한다.
