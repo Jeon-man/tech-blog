@@ -1,0 +1,41 @@
+---
+title: Mariadb 최적화
+date: '2024-08-22'
+tags: ['MariaDB', 'Ubuntu', 'Server']
+draft: false
+summary: 'cpu 코어가 부족한 db서버 최적화 하기'
+---
+
+현재 발생하는 문제는 하나의 리눅스 위에서 Node 서버, Nginx, Redis, Mariadb가 올려져 있다.
+
+cpu 코어는 4개이며 하이퍼스레딩이 켜져있지 않아 스레드도 4개이다.
+
+그래서 간헐적으로 동시에 5개 정도의 Select로 시작하는 transaction이 열리게 되는데
+몇 개의 transaction이 select에서 값을 불러오지 못해 바로 rollback이 된다.
+
+### 해결 방법
+
+찾아본 해결 방안으로는
+
+- 1. 서버 cpu 하이퍼스레딩 설정
+- 2. mariadb 설정 변경
+- 3. 쿼리 최적화
+
+하지만 첫번째 하이퍼스레딩은 서버를 껐다 켜야했고, 쿼리 최적화는 이미 한 번 진행했기에
+
+mariadb 설정을 바꿔주려고 한다.
+
+서버의 memory는 64GB로 메모리가 널널했기에 데이터 베이스 캐시 값을 늘리는게 좋다고 판단했다.
+
+```cnf
+[mysqld]
+innodb_buffer_pool_size = 5G
+```
+
+`innodb_buffer_pool_size` 설정은 InnoDB의 버퍼 풀 크기를 바꿔주는 것이다.
+
+default 값은 128MB였다.
+
+값을 변경했다고 직접적으로 발생 문제인 transaction 처리에 영향을 주진 않지만 캐시에서 값을 불러온다면
+
+간접적으로는 성능에 영향을 줄 것이라고 생각한다.
